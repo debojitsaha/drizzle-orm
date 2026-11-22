@@ -67,7 +67,17 @@ export class TableAliasProxyHandler<T extends Table | View> implements ProxyHand
 
 		const value = target[prop as keyof typeof target];
 		if (is(value, Column)) {
-			return new Proxy(value as AnyColumn, new ColumnAliasProxyHandler(new Proxy(target, this)));
+			return aliasedTableColumn(value as AnyColumn, this.alias);
+		}
+
+		if (is(value, SQL.Aliased)) {
+			if (value.isSelectionField) {
+				return new SQL.Aliased(
+					sql`${sql.identifier(this.alias)}.${sql.identifier(value.fieldAlias)}`,
+					value.fieldAlias,
+				);
+			}
+			return mapColumnsInAliasedSQLToAlias(value, this.alias);
 		}
 
 		return value;
